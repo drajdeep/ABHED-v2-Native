@@ -1,0 +1,20 @@
+name: build-and-test
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  stack:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build autoconf automake libtool flex bison \
+            pkg-config libssl-dev libevent-dev libexpat1-dev libldns-dev golang-go dnsutils
+      - name: Make scripts executable
+        run: chmod +x deploy/*.sh
+      - name: Build liboqs, libabhed, tools, patched NSD and Unbound
+        run: sudo bash deploy/build.sh --prefix /opt/abhed
+      - name: End-to-end tests on the real engines
+        run: sudo bash deploy/test.sh

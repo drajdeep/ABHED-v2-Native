@@ -1,0 +1,407 @@
+{
+ "config": "mtl-sigtag",
+ "label": "MTL + SigTag extension",
+ "spec": {
+  "dir": "/tmp/abhed-bench",
+  "prefix": "/opt/abhed",
+  "mode": "mtl",
+  "layout": "split",
+  "order": "canonical",
+  "hosts": 1000,
+  "profile": "sigtag",
+  "tcp_upstream": false,
+  "tuned": true,
+  "validity_days": 14,
+  "serial": 1794470910,
+  "root_addr": "127.0.53.10",
+  "tld_addr": "127.0.53.20",
+  "sld_addr": "127.0.53.30",
+  "resolver_addr": "127.0.53.53",
+  "port": 53,
+  "control_port": 0
+ },
+ "alpha": 10,
+ "rho": 50,
+ "steps": [
+  {
+   "step": 1,
+   "hosts": 1010,
+   "sign_ms": 397.57,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5930,
+    "abhed.bytes.udp": 12984,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 41,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 44
+   }
+  },
+  {
+   "step": 2,
+   "hosts": 1020,
+   "sign_ms": 381.398,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5898,
+    "abhed.bytes.udp": 13706,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 39,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 42
+   }
+  },
+  {
+   "step": 3,
+   "hosts": 1030,
+   "sign_ms": 408.17,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5674,
+    "abhed.bytes.udp": 14127,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 42,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 45
+   }
+  },
+  {
+   "step": 4,
+   "hosts": 1040,
+   "sign_ms": 387.469,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5738,
+    "abhed.bytes.udp": 13832,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 41,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 44
+   }
+  },
+  {
+   "step": 5,
+   "hosts": 1050,
+   "sign_ms": 394.941,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5738,
+    "abhed.bytes.udp": 13960,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 41,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 44
+   }
+  },
+  {
+   "step": 6,
+   "hosts": 1060,
+   "sign_ms": 405.855,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5866,
+    "abhed.bytes.udp": 14406,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 43,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 46
+   }
+  },
+  {
+   "step": 7,
+   "hosts": 1070,
+   "sign_ms": 410.794,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5802,
+    "abhed.bytes.udp": 14159,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 42,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 45
+   }
+  },
+  {
+   "step": 8,
+   "hosts": 1080,
+   "sign_ms": 388.667,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5706,
+    "abhed.bytes.udp": 14367,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 42,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 45
+   }
+  },
+  {
+   "step": 9,
+   "hosts": 1090,
+   "sign_ms": 390.813,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5706,
+    "abhed.bytes.udp": 16521,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 48,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 51
+   }
+  },
+  {
+   "step": 10,
+   "hosts": 1100,
+   "sign_ms": 400.161,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5866,
+    "abhed.bytes.udp": 14111,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 42,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 45
+   }
+  },
+  {
+   "step": 11,
+   "hosts": 1110,
+   "sign_ms": 386.371,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5770,
+    "abhed.bytes.udp": 13880,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 41,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 44
+   }
+  },
+  {
+   "step": 12,
+   "hosts": 1120,
+   "sign_ms": 419.144,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5706,
+    "abhed.bytes.udp": 14367,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 42,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 45
+   }
+  },
+  {
+   "step": 13,
+   "hosts": 1130,
+   "sign_ms": 413.786,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5834,
+    "abhed.bytes.udp": 14175,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 42,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 45
+   }
+  },
+  {
+   "step": 14,
+   "hosts": 1140,
+   "sign_ms": 412.057,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5738,
+    "abhed.bytes.udp": 14271,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 42,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 45
+   }
+  },
+  {
+   "step": 15,
+   "hosts": 1150,
+   "sign_ms": 410.115,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5674,
+    "abhed.bytes.udp": 16114,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 47,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 50
+   }
+  },
+  {
+   "step": 16,
+   "hosts": 1160,
+   "sign_ms": 415.368,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5834,
+    "abhed.bytes.udp": 15563,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 46,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 49
+   }
+  },
+  {
+   "step": 17,
+   "hosts": 1170,
+   "sign_ms": 406.529,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5802,
+    "abhed.bytes.udp": 12819,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 38,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 41
+   }
+  },
+  {
+   "step": 18,
+   "hosts": 1180,
+   "sign_ms": 406.386,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5898,
+    "abhed.bytes.udp": 16002,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 47,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 50
+   }
+  },
+  {
+   "step": 19,
+   "hosts": 1190,
+   "sign_ms": 390.731,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5866,
+    "abhed.bytes.udp": 11973,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 36,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 39
+   }
+  },
+  {
+   "step": 20,
+   "hosts": 1200,
+   "sign_ms": 403.037,
+   "failures": 0,
+   "upstream": {
+    "abhed.bytes.tcp": 5802,
+    "abhed.bytes.udp": 16178,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 47,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 5,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 2,
+    "num.tcp": 2,
+    "num.truncated": 3,
+    "num.udp": 50
+   }
+  }
+ ]
+}

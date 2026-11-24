@@ -1,0 +1,71 @@
+{
+ "config": "mldsa44-tcp",
+ "label": "ML-DSA-44, TCP only",
+ "spec": {
+  "dir": "/tmp/abhed-bench",
+  "prefix": "/opt/abhed",
+  "mode": "mldsa44",
+  "layout": "",
+  "order": "",
+  "hosts": 10000,
+  "profile": "base",
+  "tcp_upstream": true,
+  "tuned": true,
+  "validity_days": 14,
+  "serial": 1794470879,
+  "root_addr": "127.0.53.10",
+  "tld_addr": "127.0.53.20",
+  "sld_addr": "127.0.53.30",
+  "resolver_addr": "127.0.53.53",
+  "port": 53,
+  "control_port": 0
+ },
+ "limit": 1232,
+ "rows": [
+  {
+   "encoding": "no option",
+   "class": "A (positive)",
+   "min": 2522,
+   "mean": 2522,
+   "max": 2522,
+   "fit_udp": 0,
+   "mtl_types": {}
+  },
+  {
+   "encoding": "no option",
+   "class": "NODATA",
+   "min": 5056,
+   "mean": 5056,
+   "max": 5056,
+   "fit_udp": 0,
+   "mtl_types": {}
+  },
+  {
+   "encoding": "no option",
+   "class": "NXDOMAIN",
+   "min": 7568,
+   "mean": 7568,
+   "max": 7568,
+   "fit_udp": 0,
+   "mtl_types": {}
+  },
+  {
+   "encoding": "no option",
+   "class": "Referral + DS",
+   "min": 2584,
+   "mean": 2584,
+   "max": 2584,
+   "fit_udp": 0,
+   "mtl_types": {}
+  },
+  {
+   "encoding": "no option",
+   "class": "DNSKEY",
+   "min": 5151,
+   "mean": 5151,
+   "max": 5151,
+   "fit_udp": 0,
+   "mtl_types": {}
+  }
+ ]
+}

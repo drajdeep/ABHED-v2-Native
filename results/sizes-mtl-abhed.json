@@ -1,0 +1,248 @@
+{
+ "config": "mtl-abhed",
+ "label": "MTL + SigTag + ABHED profile",
+ "spec": {
+  "dir": "/tmp/abhed-bench",
+  "prefix": "/opt/abhed",
+  "mode": "mtl",
+  "layout": "csk",
+  "order": "hot-last",
+  "hosts": 10000,
+  "profile": "abhed",
+  "tcp_upstream": false,
+  "tuned": true,
+  "validity_days": 14,
+  "serial": 1794470919,
+  "root_addr": "127.0.53.10",
+  "tld_addr": "127.0.53.20",
+  "sld_addr": "127.0.53.30",
+  "resolver_addr": "127.0.53.53",
+  "port": 53,
+  "control_port": 0
+ },
+ "limit": 1232,
+ "rows": [
+  {
+   "encoding": "no option",
+   "class": "A (positive)",
+   "min": 3007,
+   "mean": 3078.44,
+   "max": 3087,
+   "fit_udp": 0,
+   "mtl_types": {
+    "full": 200
+   }
+  },
+  {
+   "encoding": "no option",
+   "class": "NODATA",
+   "min": 5914,
+   "mean": 5985.44,
+   "max": 5994,
+   "fit_udp": 0,
+   "mtl_types": {
+    "full": 400
+   }
+  },
+  {
+   "encoding": "no option",
+   "class": "NXDOMAIN",
+   "min": 8799,
+   "mean": 8870.44,
+   "max": 8879,
+   "fit_udp": 0,
+   "mtl_types": {
+    "full": 600
+   }
+  },
+  {
+   "encoding": "no option",
+   "class": "Referral + DS",
+   "min": 2813,
+   "mean": 2813,
+   "max": 2813,
+   "fit_udp": 0,
+   "mtl_types": {
+    "full": 20
+   }
+  },
+  {
+   "encoding": "no option",
+   "class": "DNSKEY",
+   "min": 4196,
+   "mean": 4196,
+   "max": 4196,
+   "fit_udp": 0,
+   "mtl_types": {
+    "full": 1
+   }
+  },
+  {
+   "encoding": "SigTag probe (no ladder held)",
+   "class": "A (positive)",
+   "min": 3011,
+   "mean": 3082.44,
+   "max": 3091,
+   "fit_udp": 0,
+   "mtl_types": {
+    "full": 200
+   }
+  },
+  {
+   "encoding": "SigTag probe (no ladder held)",
+   "class": "NODATA",
+   "min": 3234,
+   "mean": 3305.44,
+   "max": 3314,
+   "fit_udp": 0,
+   "mtl_types": {
+    "condensed": 200,
+    "full": 200
+   }
+  },
+  {
+   "encoding": "SigTag probe (no ladder held)",
+   "class": "NXDOMAIN",
+   "min": 3435,
+   "mean": 3506.44,
+   "max": 3515,
+   "fit_udp": 0,
+   "mtl_types": {
+    "condensed": 400,
+    "full": 200
+   }
+  },
+  {
+   "encoding": "SigTag probe (no ladder held)",
+   "class": "Referral + DS",
+   "min": 2817,
+   "mean": 2817,
+   "max": 2817,
+   "fit_udp": 0,
+   "mtl_types": {
+    "full": 20
+   }
+  },
+  {
+   "encoding": "SigTag probe (no ladder held)",
+   "class": "DNSKEY",
+   "min": 4200,
+   "mean": 4200,
+   "max": 4200,
+   "fit_udp": 0,
+   "mtl_types": {
+    "full": 1
+   }
+  },
+  {
+   "encoding": "SigTag condensed",
+   "class": "A (positive)",
+   "min": 327,
+   "mean": 398.44,
+   "max": 407,
+   "fit_udp": 1,
+   "mtl_types": {
+    "condensed": 200
+   }
+  },
+  {
+   "encoding": "SigTag condensed",
+   "class": "NODATA",
+   "min": 550,
+   "mean": 621.44,
+   "max": 630,
+   "fit_udp": 1,
+   "mtl_types": {
+    "condensed": 400
+   }
+  },
+  {
+   "encoding": "SigTag condensed",
+   "class": "NXDOMAIN",
+   "min": 751,
+   "mean": 822.44,
+   "max": 831,
+   "fit_udp": 1,
+   "mtl_types": {
+    "condensed": 600
+   }
+  },
+  {
+   "encoding": "SigTag condensed",
+   "class": "Referral + DS",
+   "min": 293,
+   "mean": 293,
+   "max": 293,
+   "fit_udp": 1,
+   "mtl_types": {
+    "condensed": 20
+   }
+  },
+  {
+   "encoding": "SigTag condensed",
+   "class": "DNSKEY",
+   "min": 1516,
+   "mean": 1516,
+   "max": 1516,
+   "fit_udp": 0,
+   "mtl_types": {
+    "condensed": 1
+   }
+  },
+  {
+   "encoding": "SigTag + ABHED compact",
+   "class": "A (positive)",
+   "min": 276,
+   "mean": 347.44,
+   "max": 356,
+   "fit_udp": 1,
+   "mtl_types": {
+    "compact": 200
+   }
+  },
+  {
+   "encoding": "SigTag + ABHED compact",
+   "class": "NODATA",
+   "min": 448,
+   "mean": 519.44,
+   "max": 528,
+   "fit_udp": 1,
+   "mtl_types": {
+    "compact": 400
+   }
+  },
+  {
+   "encoding": "SigTag + ABHED compact",
+   "class": "NXDOMAIN",
+   "min": 598,
+   "mean": 669.44,
+   "max": 678,
+   "fit_udp": 1,
+   "mtl_types": {
+    "compact": 600
+   }
+  },
+  {
+   "encoding": "SigTag + ABHED compact",
+   "class": "Referral + DS",
+   "min": 242,
+   "mean": 242,
+   "max": 242,
+   "fit_udp": 1,
+   "mtl_types": {
+    "compact": 20
+   }
+  },
+  {
+   "encoding": "SigTag + ABHED compact",
+   "class": "DNSKEY",
+   "min": 1465,
+   "mean": 1465,
+   "max": 1465,
+   "fit_udp": 0,
+   "mtl_types": {
+    "compact": 1
+   }
+  }
+ ]
+}

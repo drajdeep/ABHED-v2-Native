@@ -1,0 +1,7 @@
+# Shell scripts must keep Unix line endings (CRLF breaks them on Linux).
+*.sh text eol=lf
+*.patch text eol=lf
+Containerfile text eol=lf
+
+# The Python in reference/ is only a cross-check copy; keep it out of GitHub's language bar.
+reference/** linguist-vendored

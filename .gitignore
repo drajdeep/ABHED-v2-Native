@@ -1,0 +1,9 @@
+.build/
+results-*/
+*.o
+*.a
+*.so
+__pycache__/
+# never commit lab directories: they contain private keys
+/lab/
+/labs/

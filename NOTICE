@@ -1,0 +1,36 @@
+ABHED-v2: post-quantum DNSSEC (ML-DSA-44 and ML-DSA-44-MTL) in NSD and Unbound
+Copyright 2026 Rajdeep Das. All rights not granted by the licence are reserved.
+
+Developed by Rajdeep Das, Research Fellow, IEM-UEM, Kolkata, India.
+Official repository: https://github.com/drajdeep/ABHED-v2-native
+
+Supported by the IEM-UEM Group, the India Internet Foundation (IIFON), and
+AIORI under the Ministry of Electronics and Information Technology (MeitY),
+Government of India.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+ATTRIBUTION REQUIREMENT (Apache License 2.0, Section 4):
+Any redistribution of this work or of any Derivative Work must (a) include the
+LICENSE file, (b) retain this NOTICE file including the creator's name,
+(c) retain all copyright and attribution notices in the source files, and
+(d) carry prominent notices stating that files were changed, if they were.
+
+NAME: The licence does not grant permission to use the name "ABHED" or the
+creator's name to endorse or identify a modified version (Apache License 2.0,
+Section 6). See TRADEMARKS.md.
+
+Academic use: please cite as described in CITATION.cff.
+
+This repository contains patches for, and builds against, third-party software
+that is NOT included here and keeps its own licence:
+  NSD and Unbound (NLnet Labs, BSD-3-Clause)   - patched by patches/nsd, patches/unbound
+  liboqs (Open Quantum Safe, MIT)              - ML-DSA-44
+  ldns (NLnet Labs, BSD-3-Clause)              - used by abhed-signzone
+  OpenSSL (Apache-2.0), libevent (BSD-3-Clause), expat (MIT)
+go/vendor/ contains github.com/miekg/dns (BSD-3-Clause) and golang.org/x modules
+(BSD-3-Clause) with their licence files.
+
+Specifications implemented are IETF Internet-Drafts (work in progress). Merkle Tree
+Ladder mode is the work of Verisign Labs; Verisign has filed IPR statements on the
+MTL drafts in the IETF datatracker. Read them before any use beyond research.

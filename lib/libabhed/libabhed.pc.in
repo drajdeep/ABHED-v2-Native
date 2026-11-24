@@ -1,0 +1,9 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: libabhed
+Description: ML-DSA-44 and ML-DSA-44-MTL for DNSSEC
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -labhed -loqs -lpthread
+Cflags: -I${includedir} -DABHED_ALG_MTL=@ABHED_ALG_MTL@ -DABHED_OPT_SIGTAG=@ABHED_OPT_SIGTAG@ -DABHED_OPT_ABHED=@ABHED_OPT_ABHED@

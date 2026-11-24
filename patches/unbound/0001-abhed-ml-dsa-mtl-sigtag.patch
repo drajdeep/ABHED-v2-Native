@@ -1,0 +1,302 @@
+ABHED-v2 patch for Unbound 1.26.2
+Copyright 2026 Rajdeep Das, IEM-UEM, Kolkata, India
+SPDX-License-Identifier: Apache-2.0 (this patch). The patched program keeps its own
+BSD-3-Clause licence from NLnet Labs. Apply with: git apply <this file>
+
+diff --git a/services/outside_network.c b/services/outside_network.c
+index f157175..0f1d46c 100644
+--- a/services/outside_network.c
++++ b/services/outside_network.c
+@@ -46,6 +46,9 @@
+ #endif
+ #include <sys/time.h>
+ #include "services/outside_network.h"
++#ifdef USE_ABHED
++#include <abhed/abhed.h>
++#endif
+ #include "services/listen_dnsport.h"
+ #include "services/cache/infra.h"
+ #include "iterator/iterator.h"
+@@ -3592,6 +3595,21 @@ outnet_serviced_query(struct outside_network* outnet,
+ 			client_string_addr->string, region);
+ 	}
+ 
++#ifdef USE_ABHED
++	/* SigTag (draft-hdong-dnsop-ml-dsa-mtl-dnssec-sigtag-ext): tell the
++	 * server which signed ladders of this zone we hold. Empty = probe. */
++	if(env->cfg->abhed_sigtag && (dnssec & EDNS_DO) && zone) {
++		uint8_t tags[ABHED_TAG_LEN*ABHED_MAX_TAGS];
++		int k = abhed_lcache_tags(zone, zonelen, tags, ABHED_MAX_TAGS);
++		edns_opt_list_append(&per_upstream_opt_list, ABHED_OPT_SIGTAG,
++			(size_t)k*ABHED_TAG_LEN, tags, region);
++		if(env->cfg->abhed_compact) {
++			uint8_t f = ABHED_F_TRIM | ABHED_F_COMPACT;
++			edns_opt_list_append(&per_upstream_opt_list,
++				ABHED_OPT_ABHED, 1, &f, region);
++		}
++	}
++#endif
+ 	serviced_gen_query(buff, qinfo->qname, qinfo->qname_len, qinfo->qtype,
+ 		qinfo->qclass, flags);
+ 	sq = lookup_serviced(outnet, buff, dnssec, addr, addrlen,
+diff --git a/util/config_file.c b/util/config_file.c
+index 623f02a..f8726e1 100644
+--- a/util/config_file.c
++++ b/util/config_file.c
+@@ -251,6 +251,9 @@ config_create(void)
+ 	cfg->harden_below_nxdomain = 1;
+ 	cfg->harden_referral_path = 0;
+ 	cfg->harden_algo_downgrade = 0;
++	cfg->abhed_sigtag = 1;
++	cfg->abhed_compact = 0;
++	cfg->abhed_ladder_cache_zones = 100000;
+ 	cfg->harden_unknown_additional = 0;
+ 	cfg->use_caps_bits_for_id = 0;
+ 	cfg->caps_whitelist = NULL;
+@@ -738,6 +741,9 @@ int config_set_option(struct config_file* cfg, const char* opt,
+ 	else S_YNO("harden-below-nxdomain:", harden_below_nxdomain)
+ 	else S_YNO("harden-referral-path:", harden_referral_path)
+ 	else S_YNO("harden-algo-downgrade:", harden_algo_downgrade)
++	else S_YNO("abhed-sigtag:", abhed_sigtag)
++	else S_YNO("abhed-compact:", abhed_compact)
++	else S_NUMBER_NONZERO("abhed-ladder-cache-zones:", abhed_ladder_cache_zones)
+ 	else S_YNO("harden-unknown-additional:", harden_unknown_additional)
+ 	else S_YNO("use-caps-for-id:", use_caps_bits_for_id)
+ 	else S_STRLIST("caps-whitelist:", caps_whitelist)
+@@ -1243,6 +1249,9 @@ config_get_option(struct config_file* cfg, const char* opt,
+ 	else O_YNO(opt, "harden-below-nxdomain", harden_below_nxdomain)
+ 	else O_YNO(opt, "harden-referral-path", harden_referral_path)
+ 	else O_YNO(opt, "harden-algo-downgrade", harden_algo_downgrade)
++	else O_YNO(opt, "abhed-sigtag", abhed_sigtag)
++	else O_YNO(opt, "abhed-compact", abhed_compact)
++	else O_DEC(opt, "abhed-ladder-cache-zones", abhed_ladder_cache_zones)
+ 	else O_YNO(opt, "harden-unknown-additional", harden_unknown_additional)
+ 	else O_YNO(opt, "use-caps-for-id", use_caps_bits_for_id)
+ 	else O_LST(opt, "caps-whitelist", caps_whitelist)
+diff --git a/util/config_file.h b/util/config_file.h
+index ae7eb64..ca6a01c 100644
+--- a/util/config_file.h
++++ b/util/config_file.h
+@@ -308,6 +308,12 @@ struct config_file {
+ 	int harden_referral_path;
+ 	/** harden against algorithm downgrade */
+ 	int harden_algo_downgrade;
++	/** ABHED: send the SigTag EDNS option upstream */
++	int abhed_sigtag;
++	/** ABHED: ask for trimmed, compact MTL signatures (0xF1) */
++	int abhed_compact;
++	/** ABHED: zones in the MTL ladder cache */
++	int abhed_ladder_cache_zones;
+ 	/** harden against unknown records in the authority section and in
+ 	 * the additional section */
+ 	int harden_unknown_additional;
+diff --git a/util/configlexer.lex b/util/configlexer.lex
+index 84e353d..4334210 100644
+--- a/util/configlexer.lex
++++ b/util/configlexer.lex
+@@ -322,6 +322,9 @@ harden-dnssec-stripped{COLON}	{ YDVAR(1, VAR_HARDEN_DNSSEC_STRIPPED) }
+ harden-below-nxdomain{COLON}	{ YDVAR(1, VAR_HARDEN_BELOW_NXDOMAIN) }
+ harden-referral-path{COLON}	{ YDVAR(1, VAR_HARDEN_REFERRAL_PATH) }
+ harden-algo-downgrade{COLON}	{ YDVAR(1, VAR_HARDEN_ALGO_DOWNGRADE) }
++abhed-sigtag{COLON}		{ YDVAR(1, VAR_ABHED_SIGTAG) }
++abhed-compact{COLON}		{ YDVAR(1, VAR_ABHED_COMPACT) }
++abhed-ladder-cache-zones{COLON}	{ YDVAR(1, VAR_ABHED_LADDER_CACHE_ZONES) }
+ harden-unknown-additional{COLON}	{ YDVAR(1, VAR_HARDEN_UNKNOWN_ADDITIONAL) }
+ use-caps-for-id{COLON}		{ YDVAR(1, VAR_USE_CAPS_FOR_ID) }
+ caps-whitelist{COLON}		{ YDVAR(1, VAR_CAPS_WHITELIST) }
+diff --git a/util/configparser.y b/util/configparser.y
+index 1f877df..a630d41 100644
+--- a/util/configparser.y
++++ b/util/configparser.y
+@@ -140,6 +140,7 @@ extern struct config_parser_state* cfg_parser;
+ %token VAR_DNSTAP_SAMPLE_RATE
+ %token VAR_RESPONSE_IP_TAG VAR_RESPONSE_IP VAR_RESPONSE_IP_DATA
+ %token VAR_HARDEN_ALGO_DOWNGRADE VAR_IP_TRANSPARENT
++%token VAR_ABHED_SIGTAG VAR_ABHED_COMPACT VAR_ABHED_LADDER_CACHE_ZONES
+ %token VAR_IP_DSCP
+ %token VAR_DISABLE_DNSSEC_LAME_CHECK
+ %token VAR_IP_RATELIMIT VAR_IP_RATELIMIT_SLABS VAR_IP_RATELIMIT_SIZE
+@@ -302,6 +303,7 @@ content_server: server_num_threads | server_verbosity | server_port |
+ 	server_dns64_prefix | server_dns64_synthall | server_dns64_ignore_aaaa |
+ 	server_nat64_prefix |
+ 	server_infra_cache_min_rtt | server_infra_cache_max_rtt | server_harden_algo_downgrade |
++	server_abhed_sigtag | server_abhed_compact | server_abhed_ladder_cache_zones |
+ 	server_ip_transparent | server_ip_ratelimit | server_ratelimit |
+ 	server_ip_dscp | server_infra_keep_probing |
+ 	server_ip_ratelimit_slabs | server_ratelimit_slabs |
+@@ -1939,6 +1941,33 @@ server_harden_algo_downgrade: VAR_HARDEN_ALGO_DOWNGRADE STRING_ARG
+ 		free($2);
+ 	}
+ 	;
++server_abhed_sigtag: VAR_ABHED_SIGTAG STRING_ARG
++	{
++		OUTYY(("P(server_abhed_sigtag:%s)\n", $2));
++		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
++			yyerror("expected yes or no.");
++		else cfg_parser->cfg->abhed_sigtag = (strcmp($2, "yes")==0);
++		free($2);
++	}
++	;
++server_abhed_compact: VAR_ABHED_COMPACT STRING_ARG
++	{
++		OUTYY(("P(server_abhed_compact:%s)\n", $2));
++		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
++			yyerror("expected yes or no.");
++		else cfg_parser->cfg->abhed_compact = (strcmp($2, "yes")==0);
++		free($2);
++	}
++	;
++server_abhed_ladder_cache_zones: VAR_ABHED_LADDER_CACHE_ZONES STRING_ARG
++	{
++		OUTYY(("P(server_abhed_ladder_cache_zones:%s)\n", $2));
++		if(atoi($2) <= 0)
++			yyerror("number greater than zero expected");
++		else cfg_parser->cfg->abhed_ladder_cache_zones = atoi($2);
++		free($2);
++	}
++	;
+ server_harden_unknown_additional: VAR_HARDEN_UNKNOWN_ADDITIONAL STRING_ARG
+ 	{
+ 		OUTYY(("P(server_harden_unknown_additional:%s)\n", $2));
+diff --git a/validator/val_secalgo.c b/validator/val_secalgo.c
+index d0d6d73..659ea2d 100644
+--- a/validator/val_secalgo.c
++++ b/validator/val_secalgo.c
+@@ -44,6 +44,9 @@
+ /* packed_rrset on top to define enum types (forced by c99 standard) */
+ #include "util/data/packed_rrset.h"
+ #include "validator/val_secalgo.h"
++#ifdef USE_ABHED
++#include <abhed/abhed.h>
++#endif
+ #include "validator/val_nsec3.h"
+ #include "util/log.h"
+ #include "sldns/rrdef.h"
+@@ -330,6 +333,11 @@ secalgo_ds_digest(int algo, unsigned char* buf, size_t len,
+ int
+ dnskey_algo_id_is_supported(int id)
+ {
++#ifdef USE_ABHED
++	/* ABHED: ML-DSA-44 (18) and ML-DSA-44-MTL-SHAKE-128 */
++	if(id == ABHED_ALG_MLDSA44 || id == ABHED_ALG_MTL)
++		return 1;
++#endif
+ 	switch(id) {
+ 	case LDNS_RSAMD5:
+ 		/* RFC 6725 deprecates RSAMD5 */
+@@ -741,6 +749,27 @@ verify_canonrrset(sldns_buffer* buf, int algo, unsigned char* sigblock,
+ 	int res, dofree = 0, docrypto_free = 0;
+ 	EVP_PKEY *evp_key = NULL;
+ 
++#ifdef USE_ABHED
++	if(algo == ABHED_ALG_MLDSA44 || algo == ABHED_ALG_MTL) {
++		size_t off = 0, sl;
++		int r;
++		sl = abhed_signing_data_signer(sldns_buffer_begin(buf),
++			sldns_buffer_limit(buf), &off);
++		if(!sl) {
++			*reason = "malformed signing data";
++			return sec_status_bogus;
++		}
++		r = abhed_verify_rrsig(algo, sldns_buffer_begin(buf),
++			sldns_buffer_limit(buf), sigblock, sigblock_len, key,
++			keylen, sldns_buffer_begin(buf)+off, sl);
++		if(r == ABHED_OK)
++			return sec_status_secure;
++		verbose(VERB_QUERY, "verify: abhed: %s", abhed_result_str(r));
++		*reason = (char*)abhed_result_str(r);
++		return sec_status_bogus;
++	}
++#endif
++
+ #ifndef USE_DSA
+ 	if((algo == LDNS_DSA || algo == LDNS_DSA_NSEC3) &&(fake_dsa||fake_sha1))
+ 		return sec_status_secure;
+diff --git a/validator/validator.c b/validator/validator.c
+index 2eecf54..90257b0 100644
+--- a/validator/validator.c
++++ b/validator/validator.c
+@@ -42,6 +42,9 @@
+ #include "config.h"
+ #include <ctype.h>
+ #include "validator/validator.h"
++#ifdef USE_ABHED
++#include <abhed/abhed.h>
++#endif
+ #include "validator/val_anchor.h"
+ #include "validator/val_kcache.h"
+ #include "validator/val_kentry.h"
+@@ -188,6 +191,9 @@ val_apply_cfg(struct module_env* env, struct val_env* val_env,
+ 	int keyiter_count = 0;
+ 	if(!env->anchors)
+ 		env->anchors = anchors_create();
++#ifdef USE_ABHED
++	abhed_lcache_init((size_t)cfg->abhed_ladder_cache_zones);
++#endif
+ 	if(!env->anchors) {
+ 		log_err("out of memory");
+ 		return 0;
+@@ -685,6 +691,52 @@ prime_trust_anchor(struct module_qstate* qstate, struct val_qstate* vq,
+ 	return 1;
+ }
+ 
++#ifdef USE_ABHED
++/** ABHED: 1 if the rrset carries an MTL RRSIG in full form (MTL-Type 0x01) */
++static int
++abhed_has_full_mtl(struct ub_packed_rrset_key* s)
++{
++	struct packed_rrset_data* d = (struct packed_rrset_data*)s->entry.data;
++	size_t i;
++	for(i=d->count; i<d->count+d->rrsig_count; i++) {
++		uint8_t* rd = d->rr_data[i];
++		size_t len = d->rr_len[i], p = 2+18;
++		if(len < p+1 || rd[2+2] != ABHED_ALG_MTL)
++			continue;
++		while(p < len && rd[p] != 0 && rd[p] <= 63)
++			p += (size_t)rd[p]+1;
++		p++;
++		if(p < len && rd[p] == ABHED_T_FULL)
++			return 1;
++	}
++	return 0;
++}
++
++/** ABHED: a response may carry the signed ladder in one RRSIG only (SigTag
++ * deduplication). Verify those RRsets first, so the ladder is in the cache
++ * before the condensed signatures of the same response are checked. */
++static void
++abhed_prevalidate(struct module_qstate* qstate, struct val_qstate* vq,
++	struct module_env* env, struct val_env* ve,
++	struct reply_info* chase_reply, struct key_entry_key* key_entry)
++{
++	size_t i;
++	char* reason = NULL;
++	sldns_ede_code rb = LDNS_EDE_NONE;
++	int verified = 0;
++	char rbuf[256];
++	for(i=0; i<chase_reply->an_numrrsets+chase_reply->ns_numrrsets; i++) {
++		struct ub_packed_rrset_key* s = chase_reply->rrsets[i];
++		if(!abhed_has_full_mtl(s))
++			continue;
++		(void)val_verify_rrset_entry(env, ve, s, key_entry, &reason,
++			&rb, i<chase_reply->an_numrrsets?LDNS_SECTION_ANSWER:
++			LDNS_SECTION_AUTHORITY, qstate, vq, &verified, rbuf,
++			sizeof(rbuf));
++	}
++}
++#endif /* USE_ABHED */
++
+ /**
+  * Validate if the ANSWER and AUTHORITY sections contain valid rrsets.
+  * They must be validly signed with the given key.
+@@ -727,6 +779,10 @@ validate_msg_signatures(struct module_qstate* qstate, struct val_qstate* vq,
+ 		vq->msg_signatures_state = 0;
+ 		have_state = 1;
+ 	}
++#ifdef USE_ABHED
++	if(!have_state)
++		abhed_prevalidate(qstate, vq, env, ve, chase_reply, key_entry);
++#endif
+ 
+ 	/* validate the ANSWER section */
+ 	for(i=0; i<chase_reply->an_numrrsets; i++) {

@@ -1,0 +1,230 @@
+{
+ "config": "mtl-base-tcp",
+ "label": "MTL base draft, TCP only",
+ "spec": {
+  "dir": "/tmp/abhed-bench",
+  "prefix": "/opt/abhed",
+  "mode": "mtl",
+  "layout": "split",
+  "order": "canonical",
+  "hosts": 10000,
+  "profile": "base",
+  "tcp_upstream": true,
+  "tuned": true,
+  "validity_days": 14,
+  "serial": 1794470896,
+  "root_addr": "127.0.53.10",
+  "tld_addr": "127.0.53.20",
+  "sld_addr": "127.0.53.30",
+  "resolver_addr": "127.0.53.53",
+  "port": 53,
+  "control_port": 0
+ },
+ "trials": [
+  {
+   "queries": 500,
+   "failures": 0,
+   "not_validated": 0,
+   "p50_ms": 0.144,
+   "p95_ms": 0.259,
+   "upstream": {
+    "abhed.bytes.tcp": 1333680,
+    "abhed.bytes.udp": 0,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 0,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 424,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 326,
+    "num.tcp": 326,
+    "num.truncated": 0,
+    "num.udp": 0
+   },
+   "resolver": {
+    "num.answer.bogus": 0,
+    "num.answer.secure": 500,
+    "total.num.cachehits": 196,
+    "total.num.queries": 500,
+    "total.recursion.time.avg": 0.000075
+   }
+  },
+  {
+   "queries": 500,
+   "failures": 0,
+   "not_validated": 0,
+   "p50_ms": 0.173,
+   "p95_ms": 0.292,
+   "upstream": {
+    "abhed.bytes.tcp": 1448065,
+    "abhed.bytes.udp": 0,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 0,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 461,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 347,
+    "num.tcp": 347,
+    "num.truncated": 0,
+    "num.udp": 0
+   },
+   "resolver": {
+    "num.answer.bogus": 0,
+    "num.answer.secure": 500,
+    "total.num.cachehits": 174,
+    "total.num.queries": 500,
+    "total.recursion.time.avg": 0.000083
+   }
+  },
+  {
+   "queries": 500,
+   "failures": 0,
+   "not_validated": 0,
+   "p50_ms": 0.161,
+   "p95_ms": 0.277,
+   "upstream": {
+    "abhed.bytes.tcp": 1314438,
+    "abhed.bytes.udp": 0,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 0,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 418,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 321,
+    "num.tcp": 321,
+    "num.truncated": 0,
+    "num.udp": 0
+   },
+   "resolver": {
+    "num.answer.bogus": 0,
+    "num.answer.secure": 500,
+    "total.num.cachehits": 201,
+    "total.num.queries": 500,
+    "total.recursion.time.avg": 0.000088
+   }
+  },
+  {
+   "queries": 500,
+   "failures": 0,
+   "not_validated": 0,
+   "p50_ms": 0.143,
+   "p95_ms": 0.282,
+   "upstream": {
+    "abhed.bytes.tcp": 1245514,
+    "abhed.bytes.udp": 0,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 0,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 396,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 313,
+    "num.tcp": 313,
+    "num.truncated": 0,
+    "num.udp": 0
+   },
+   "resolver": {
+    "num.answer.bogus": 0,
+    "num.answer.secure": 500,
+    "total.num.cachehits": 201,
+    "total.num.queries": 500,
+    "total.recursion.time.avg": 0.000083
+   }
+  },
+  {
+   "queries": 500,
+   "failures": 0,
+   "not_validated": 0,
+   "p50_ms": 0.167,
+   "p95_ms": 0.304,
+   "upstream": {
+    "abhed.bytes.tcp": 1344956,
+    "abhed.bytes.udp": 0,
+    "abhed.mtl.compact": 0,
+    "abhed.mtl.condensed": 0,
+    "abhed.mtl.dedup": 0,
+    "abhed.mtl.full": 428,
+    "abhed.mtl.trimmed": 0,
+    "abhed.tcp.queries": 333,
+    "num.tcp": 333,
+    "num.truncated": 0,
+    "num.udp": 0
+   },
+   "resolver": {
+    "num.answer.bogus": 0,
+    "num.answer.secure": 500,
+    "total.num.cachehits": 189,
+    "total.num.queries": 500,
+    "total.recursion.time.avg": 0.000089
+   }
+  }
+ ],
+ "summary": {
+  "abhed.bytes.tcp": {
+   "mean": 1337330.6,
+   "sd": 72951.93643625919
+  },
+  "abhed.bytes.udp": {
+   "mean": 0,
+   "sd": 0
+  },
+  "abhed.mtl.compact": {
+   "mean": 0,
+   "sd": 0
+  },
+  "abhed.mtl.condensed": {
+   "mean": 0,
+   "sd": 0
+  },
+  "abhed.mtl.dedup": {
+   "mean": 0,
+   "sd": 0
+  },
+  "abhed.mtl.full": {
+   "mean": 425.4,
+   "sd": 23.426480742954116
+  },
+  "abhed.mtl.trimmed": {
+   "mean": 0,
+   "sd": 0
+  },
+  "abhed.tcp.queries": {
+   "mean": 328,
+   "sd": 12.884098726725126
+  },
+  "bytes": {
+   "mean": 1337330.6,
+   "sd": 72951.93643625919
+  },
+  "failures": {
+   "mean": 0,
+   "sd": 0
+  },
+  "not_validated": {
+   "mean": 0,
+   "sd": 0
+  },
+  "num.tcp": {
+   "mean": 328,
+   "sd": 12.884098726725126
+  },
+  "num.truncated": {
+   "mean": 0,
+   "sd": 0
+  },
+  "num.udp": {
+   "mean": 0,
+   "sd": 0
+  },
+  "p50_ms": {
+   "mean": 0.15760000000000002,
+   "sd": 0.013557285864065865
+  },
+  "p95_ms": {
+   "mean": 0.2828,
+   "sd": 0.01684339633209406
+  },
+  "round_trips": {
+   "mean": 656,
+   "sd": 25.768197453450252
+  }
+ }
+}

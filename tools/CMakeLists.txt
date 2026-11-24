@@ -1,0 +1,20 @@
+# Copyright 2026 Rajdeep Das, IEM-UEM, Kolkata, India
+# SPDX-License-Identifier: Apache-2.0
+cmake_minimum_required(VERSION 3.16)
+project(abhed-tools VERSION 2.1.1 LANGUAGES C)
+set(CMAKE_C_STANDARD 11)
+# installed binaries find liboqs and libabhed without LD_LIBRARY_PATH
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LDNS REQUIRED ldns)
+if(NOT TARGET abhed_static)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../lib/libabhed ${CMAKE_CURRENT_BINARY_DIR}/libabhed)
+endif()
+foreach(tool abhed-keygen abhed-signzone abhed-sigdump)
+  add_executable(${tool} src/${tool}.c src/keyfile.c)
+  target_include_directories(${tool} PRIVATE ${LDNS_INCLUDE_DIRS})
+  target_link_libraries(${tool} abhed_static ${LDNS_LINK_LIBRARIES})
+  target_compile_options(${tool} PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-deprecated-declarations)
+  install(TARGETS ${tool} RUNTIME DESTINATION bin)
+endforeach()

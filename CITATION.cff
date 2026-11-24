@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use ABHED-v2 or results produced with it, please cite it as below."
+title: "ABHED-v2: Post-quantum DNSSEC (ML-DSA-44 and ML-DSA-44-MTL) in NSD and Unbound"
+type: software
+authors:
+  - family-names: "Das"
+    given-names: "Rajdeep"
+    affiliation: "IEM-UEM, Kolkata, India"
+    email: "Rajdeep.Das2025@iem.edu.in"
+repository-code: "https://github.com/drajdeep/ABHED-v2-native"
+url: "https://github.com/drajdeep/ABHED-v2-native"
+version: "2.1.1"
+date-released: "2026-11-24"
+license: Apache-2.0
+keywords: [DNSSEC, post-quantum cryptography, ML-DSA, Merkle Tree Ladder, SigTag, NSD, Unbound]

@@ -1,0 +1,527 @@
+ABHED-v2 patch for NSD 4.15.4
+Copyright 2026 Rajdeep Das, IEM-UEM, Kolkata, India
+SPDX-License-Identifier: Apache-2.0 (this patch). The patched program keeps its own
+BSD-3-Clause licence from NLnet Labs. Apply with: git apply <this file>
+
+diff --git a/Makefile.in b/Makefile.in
+index 68f79f5..ff2b13c 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -95,7 +95,7 @@ XDP_TARGETS=@xdp_targets@
+ TARGETS=nsd nsd-checkconf nsd-checkzone nsd-control nsd.conf.sample nsd-control-setup.sh contrib/nsd.openrc contrib/nsd-tmpfiles.conf $(XDP_TARGETS)
+ MANUALS=nsd.8 nsd-checkconf.8 nsd-checkzone.8 nsd-control.8 nsd.conf.5
+ 
+-COMMON_OBJ=answer.o axfr.o ixfr.o ixfrcreate.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o rrl.o siphash.o tsig.o tsig-openssl.o udb.o util.o bitset.o popen3.o proxy_protocol.o
++COMMON_OBJ=abhed_mtl.o answer.o axfr.o ixfr.o ixfrcreate.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o rrl.o siphash.o tsig.o tsig-openssl.o udb.o util.o bitset.o popen3.o proxy_protocol.o
+ XFRD_OBJ=xfrd-catalog-zones.o xfrd-disk.o xfrd-notify.o xfrd-tcp.o xfrd.o remote.o metrics.o $(DNSTAP_OBJ)
+ XDP_OBJ=xdp-server.o xdp-util.o
+ NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) $(XDP_OBJ) difffile.o ipc.o mini_event.o netio.o nsd.o server.o dbaccess.o dbcreate.o zonec.o verify.o
+@@ -530,6 +530,7 @@ dname.o: $(srcdir)/dname.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/dns.h $(
+  $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h
+ dns.o: $(srcdir)/dns.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/dns.h $(srcdir)/rdata.h $(srcdir)/namedb.h $(srcdir)/dname.h \
+  $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/bitset.h $(srcdir)/radtree.h $(srcdir)/rbtree.h
++abhed_mtl.o: $(srcdir)/abhed_mtl.c $(srcdir)/abhed_mtl.h config.h
+ edns.o: $(srcdir)/edns.c config.h $(srcdir)/compat/cpuset.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
+  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/bitset.h $(srcdir)/nsd.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h \
+  $(srcdir)/radtree.h $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/tsig.h
+diff --git a/abhed_mtl.c b/abhed_mtl.c
+new file mode 100644
+index 0000000..65437ba
+--- /dev/null
++++ b/abhed_mtl.c
+@@ -0,0 +1,177 @@
++/*
++ * Copyright 2026 Rajdeep Das, IEM-UEM, Kolkata, India
++ * SPDX-License-Identifier: Apache-2.0
++ * Part of ABHED-v2 (patch for NSD). See the LICENSE and NOTICE files of ABHED-v2.
++ */
++#include "config.h"
++#ifdef USE_ABHED
++#include <stdlib.h>
++#include <string.h>
++#include <abhed/abhed.h>
++#include "abhed_mtl.h"
++#include "buffer.h"
++#include "namedb.h"
++#include "query.h"
++#include "dns.h"
++#include "nsd.h"
++
++/* Interned signed ladders: one entry per series (SID), the largest ladder seen. Populated
++ * while zones are loaded (before serving processes fork), read-only while answering. */
++struct lentry {
++    uint8_t sid[ABHED_SID_LEN];
++    uint64_t n;
++    uint8_t *bytes;           /* signed ladder: ladder | siglen | signature */
++    size_t len;
++};
++#define MAX_SERIES 4096
++static struct lentry table[MAX_SERIES];
++static size_t ntable;
++static struct abhed_nsd_stats st;
++
++static struct lentry *find(const uint8_t *sid)
++{
++    for (size_t i = 0; i < ntable; i++)
++        if (memcmp(table[i].sid, sid, ABHED_SID_LEN) == 0) return &table[i];
++    return NULL;
++}
++
++int abhed_nsd_load_rrsig(uint8_t alg, const uint8_t *sig, size_t siglen, uint8_t *buf, size_t *outlen)
++{
++    if (alg != ABHED_ALG_MTL || siglen < 1 || sig[0] != ABHED_T_FULL) return 0;
++    abhed_cond c;
++    abhed_ladder l;
++    const uint8_t *ls;
++    size_t lsl;
++    size_t n = abhed_cond_decode(&c, sig + 1, siglen - 1);
++    if (!n) return 0;
++    size_t m = abhed_signed_ladder_decode(&l, &ls, &lsl, sig + 1 + n, siglen - 1 - n);
++    if (!m || 1 + n + m != siglen || memcmp(l.sid, c.sid, ABHED_SID_LEN)) return 0;
++    struct lentry *e = find(l.sid);
++    uint64_t ln = abhed_ladder_n(&l);
++    if (!e) {
++        if (ntable == MAX_SERIES) return 0;
++        e = &table[ntable++];
++        memcpy(e->sid, l.sid, ABHED_SID_LEN);
++        st.ladders = ntable;
++    }
++    if (!e->bytes || ln > e->n) {
++        uint8_t *b = malloc(m);
++        if (!b) return 0;
++        memcpy(b, sig + 1 + n, m);
++        free(e->bytes);
++        e->bytes = b; e->len = m; e->n = ln;
++    }
++    buf[0] = ABHED_T_COND;
++    memcpy(buf + 1, sig + 1, n);
++    *outlen = 1 + n;
++    return 1;
++}
++
++static size_t signer_len(const uint8_t *rd, size_t rdlen)
++{
++    size_t p = 18;
++    while (p < rdlen) {
++        uint8_t lab = rd[p];
++        if (lab > 63) return 0;
++        p += 1 + lab;
++        if (!lab) return p - 18;
++    }
++    return 0;
++}
++
++int abhed_nsd_is_mtl(const struct rr *rr)
++{
++    if (rr->type != TYPE_RRSIG || rr->rdlength < 20 || rr->rdata[2] != ABHED_ALG_MTL) return 0;
++    size_t sl = signer_len(rr->rdata, rr->rdlength);
++    return sl && 18 + sl < rr->rdlength && rr->rdata[18 + sl] == ABHED_T_COND;
++}
++
++int abhed_nsd_option(struct query *q, uint16_t code, const uint8_t *data, uint16_t len)
++{
++    if (code == ABHED_OPT_SIGTAG) {
++        if (len % ABHED_TAG_LEN || len / ABHED_TAG_LEN > ABHED_MAX_TAGS) return 0;   /* FORMERR */
++        if (!q->abhed_sigtag) q->edns.opt_reserved_space += 4;                       /* echo */
++        q->abhed_sigtag = 1;
++        q->abhed_ntags = len / ABHED_TAG_LEN;
++        memcpy(q->abhed_tags, data, len);
++    } else if (code == ABHED_OPT_ABHED) {
++        q->abhed_flags = len ? data[0] : 0;
++    }
++    return 1;
++}
++
++static uint64_t get64(const uint8_t *p) { uint64_t v = 0; for (int i = 0; i < 8; i++) v = (v << 8) | p[i]; return v; }
++
++static void write_cond(struct query *q, const abhed_cond *c, int compact)
++{
++    uint8_t out[1 + ABHED_COND_FIXED + 16 * ABHED_MAX_SIBS];
++    size_t n;
++    if (compact) {
++        n = abhed_compact_encode(c, out, sizeof out);
++        st.compact++; q->abhed_n[2]++;
++    } else {
++        out[0] = ABHED_T_COND;
++        n = 1 + abhed_cond_encode(c, out + 1, sizeof out - 1);
++        st.condensed++; q->abhed_n[1]++;
++    }
++    buffer_write(q->packet, out, n);
++}
++
++void abhed_nsd_write_rrsig(struct query *q, const struct rr *rr)
++{
++    size_t sl = signer_len(rr->rdata, rr->rdlength);
++    const uint8_t *sig = rr->rdata + 18 + sl;
++    size_t siglen = rr->rdlength - 18 - sl;
++    abhed_cond c;
++    buffer_write(q->packet, rr->rdata, 18 + sl);       /* header + uncompressed signer */
++    struct lentry *e = NULL;
++    if (!abhed_cond_decode(&c, sig + 1, siglen - 1) || !(e = find(c.sid))) {
++        buffer_write(q->packet, sig, siglen);
++        return;
++    }
++    int compact = (q->abhed_flags & ABHED_F_COMPACT) != 0;
++    if (q->abhed_sigtag) {
++        int best = -1;
++        abhed_cond bc;
++        for (int i = 0; i < q->abhed_ntags; i++) {
++            const uint8_t *t = q->abhed_tags + ABHED_TAG_LEN * i;
++            uint64_t right = get64(t + ABHED_SID_LEN);
++            if (memcmp(t, c.sid, ABHED_SID_LEN) || c.leaf > right || right >= e->n) continue;
++            abhed_cond tc = c;
++            if ((q->abhed_flags & ABHED_F_TRIM) && !abhed_cond_trim(&tc, right + 1)) continue;
++            if (best < 0 || tc.nsibs < bc.nsibs) { bc = tc; best = i; }
++        }
++        if (best >= 0) {                               /* client holds a covering ladder */
++            if (bc.nsibs < c.nsibs) { st.trimmed++; q->abhed_n[4]++; }
++            write_cond(q, &bc, compact);
++            return;
++        }
++        if (q->abhed_full_sent && !memcmp(q->abhed_full_sid, c.sid, ABHED_SID_LEN)) {
++            st.dedup++; q->abhed_n[3]++;               /* ladder already in this response */
++            write_cond(q, &c, compact);
++            return;
++        }
++    }
++    /* full signature: 0x01 | condensed | signed ladder */
++    uint8_t t = ABHED_T_FULL;
++    buffer_write(q->packet, &t, 1);
++    buffer_write(q->packet, sig + 1, siglen - 1);
++    buffer_write(q->packet, e->bytes, e->len);
++    q->abhed_full_sent = 1;
++    memcpy(q->abhed_full_sid, c.sid, ABHED_SID_LEN);
++    st.full++; q->abhed_n[0]++;
++}
++
++void abhed_nsd_stats(struct abhed_nsd_stats *s) { *s = st; }
++
++void abhed_nsd_account(struct nsdst *t, const struct query *q, size_t bytes, int tcp)
++{
++    t->abhed_full += q->abhed_n[0];
++    t->abhed_cond += q->abhed_n[1];
++    t->abhed_compact += q->abhed_n[2];
++    t->abhed_dedup += q->abhed_n[3];
++    t->abhed_trim += q->abhed_n[4];
++    if (tcp) { t->qtcp++; t->bytes_tcp += bytes; }
++    else t->bytes_udp += bytes;
++}
++#endif
+diff --git a/abhed_mtl.h b/abhed_mtl.h
+new file mode 100644
+index 0000000..370030c
+--- /dev/null
++++ b/abhed_mtl.h
+@@ -0,0 +1,32 @@
++/*
++ * Copyright 2026 Rajdeep Das, IEM-UEM, Kolkata, India
++ * SPDX-License-Identifier: Apache-2.0
++ * Part of ABHED-v2 (patch for NSD). See the LICENSE and NOTICE files of ABHED-v2.
++ */
++/* ML-DSA-44-MTL support for NSD: signed-ladder interning and per-query RRSIG composition. */
++#ifndef ABHED_MTL_H
++#define ABHED_MTL_H
++#ifdef USE_ABHED
++#include <stdint.h>
++#include <stddef.h>
++struct query;
++struct rr;
++struct buffer;
++
++/* Called by read_rrsig_rdata for every RRSIG. If sig is an MTL full signature (0x01), the
++ * signed ladder is interned and *out/*outlen receive the 0x02 condensed form to store
++ * (in buf, which must hold siglen bytes). Returns 1 if replaced, 0 to store sig unchanged. */
++int abhed_nsd_load_rrsig(uint8_t alg, const uint8_t *sig, size_t siglen, uint8_t *buf, size_t *outlen);
++/* 1 if rr is an RRSIG of the MTL algorithm stored in condensed form. */
++int abhed_nsd_is_mtl(const struct rr *rr);
++/* Write the RRSIG RDATA of rr, composing the MTL signature field for this query. */
++void abhed_nsd_write_rrsig(struct query *q, const struct rr *rr);
++/* EDNS: option handlers. Return 0 for FORMERR. */
++int abhed_nsd_option(struct query *q, uint16_t code, const uint8_t *data, uint16_t len);
++struct abhed_nsd_stats { uint64_t full, condensed, compact, trimmed, dedup, ladders; };
++void abhed_nsd_stats(struct abhed_nsd_stats *s);
++struct nsdst;
++/* Add this query's MTL counters and response size to the statistics block. */
++void abhed_nsd_account(struct nsdst *t, const struct query *q, size_t bytes, int tcp);
++#endif
++#endif
+diff --git a/edns.c b/edns.c
+index 31de068..23b845f 100644
+--- a/edns.c
++++ b/edns.c
+@@ -18,6 +18,11 @@
+ 
+ #include "dns.h"
+ #include "edns.h"
++#include "abhed_mtl.h"
++#ifdef USE_ABHED
++#include <abhed/abhed.h>
++#include "query.h"
++#endif
+ #include "nsd.h"
+ #include "query.h"
+ #include "options.h"
+@@ -126,6 +131,16 @@ edns_handle_option(uint16_t optcode, uint16_t optlen, buffer_type* packet,
+ 			edns->padding = 1;
+ 		buffer_skip(packet, optlen);
+ 		break;
++#ifdef USE_ABHED
++	case ABHED_OPT_SIGTAG:
++	case ABHED_OPT_ABHED:
++		if(!buffer_available(packet, optlen))
++			return 0;
++		if(!abhed_nsd_option(query, optcode, buffer_current(packet), optlen))
++			return 0; /* FORMERR */
++		buffer_skip(packet, optlen);
++		break;
++#endif
+ 	case ZONEVERSION_CODE:
+ 		edns->zoneversion = 1;
+ 		if(optlen > 0)
+diff --git a/ipc.c b/ipc.c
+index 11d6a6a..e8b291a 100644
+--- a/ipc.c
++++ b/ipc.c
+@@ -244,6 +244,16 @@ stats_add(struct nsdst* total, struct nsdst* s)
+ 	total->raxfr += s->raxfr;
+ 	total->nona += s->nona;
+ 	total->rixfr += s->rixfr;
++#ifdef USE_ABHED
++	total->abhed_full += s->abhed_full;
++	total->abhed_cond += s->abhed_cond;
++	total->abhed_compact += s->abhed_compact;
++	total->abhed_dedup += s->abhed_dedup;
++	total->abhed_trim += s->abhed_trim;
++	total->qtcp += s->qtcp;
++	total->bytes_udp += s->bytes_udp;
++	total->bytes_tcp += s->bytes_tcp;
++#endif
+ 
+ 	total->db_disk = s->db_disk;
+ 	total->db_mem = s->db_mem;
+@@ -278,6 +288,16 @@ stats_subtract(struct nsdst* total, struct nsdst* s)
+ 	total->raxfr -= s->raxfr;
+ 	total->nona -= s->nona;
+ 	total->rixfr -= s->rixfr;
++#ifdef USE_ABHED
++	total->abhed_full -= s->abhed_full;
++	total->abhed_cond -= s->abhed_cond;
++	total->abhed_compact -= s->abhed_compact;
++	total->abhed_dedup -= s->abhed_dedup;
++	total->abhed_trim -= s->abhed_trim;
++	total->qtcp -= s->qtcp;
++	total->bytes_udp -= s->bytes_udp;
++	total->bytes_tcp -= s->bytes_tcp;
++#endif
+ }
+ #endif /* BIND8_STATS */
+ 
+diff --git a/nsd.h b/nsd.h
+index e55c9de..a62abdf 100644
+--- a/nsd.h
++++ b/nsd.h
+@@ -133,6 +133,10 @@ struct nsdst {
+ 	/* Dropped, truncated, queries for nonconfigured zone, tx errors */
+ 	stc_type dropped, truncated, wrongzone, txerr, rxerr;
+ 	stc_type edns, ednserr, raxfr, nona, rixfr;
++#ifdef USE_ABHED
++	/* ABHED: MTL signature forms sent, TCP queries, response bytes */
++	stc_type abhed_full, abhed_cond, abhed_compact, abhed_dedup, abhed_trim, qtcp, bytes_udp, bytes_tcp;
++#endif
+ 	uint64_t db_disk, db_mem;
+ };
+ #endif /* BIND8_STATS */
+diff --git a/packet.c b/packet.c
+index 31b4dfc..c2bb1e2 100644
+--- a/packet.c
++++ b/packet.c
+@@ -12,6 +12,7 @@
+ #include <string.h>
+ 
+ #include "packet.h"
++#include "abhed_mtl.h"
+ #include "query.h"
+ #include "rdata.h"
+ #include "dns.h"
+@@ -75,6 +76,11 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr, uint32_t ttl)
+ 	rdlength_pos = buffer_position(q->packet);
+ 	buffer_skip(q->packet, sizeof(rdlength));
+ 
++#ifdef USE_ABHED
++	if (abhed_nsd_is_mtl(rr))
++		abhed_nsd_write_rrsig(q, rr);
++	else
++#endif
+ 	descriptor->write_rdata(q, rr);
+ 
+ 	if (!query_overflow(q)) {
+diff --git a/query.c b/query.c
+index f7804de..6db0626 100644
+--- a/query.c
++++ b/query.c
+@@ -32,6 +32,10 @@
+ #include "nsd.h"
+ #include "namedb.h"
+ #include "query.h"
++#include "abhed_mtl.h"
++#ifdef USE_ABHED
++#include <abhed/abhed.h>
++#endif
+ #include "util.h"
+ #include "options.h"
+ #include "nsec3.h"
+@@ -256,6 +260,11 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
+ 	q->reserved_space = 0;
+ 	buffer_clear(q->packet);
+ 	edns_init_record(&q->edns);
++#ifdef USE_ABHED
++	q->abhed_sigtag = q->abhed_ntags = q->abhed_full_sent = 0;
++	q->abhed_flags = 0;
++	memset(q->abhed_n, 0, sizeof(q->abhed_n));
++#endif
+ 	tsig_init_record(&q->tsig, NULL, NULL);
+ 	q->tsig_prepare_it = 1;
+ 	q->tsig_update_it = 1;
+@@ -1926,6 +1935,13 @@ query_add_optional(query_type *q, nsd_type *nsd, uint32_t *now_p)
+ 				retrieve_soa_rdata_serial(q->zone->soa_rrset->rrs[0], &serial);
+ 				buffer_write_u32(q->packet, serial);
+ 			}
++#ifdef USE_ABHED
++			if(q->abhed_sigtag) {
++				/* SigTag: echo with empty data */
++				buffer_write_u16(q->packet, ABHED_OPT_SIGTAG);
++				buffer_write_u16(q->packet, 0);
++			}
++#endif
+ 			if(q->edns.cookie_status != COOKIE_NOT_PRESENT) {
+ 				/* cookie opt header */
+ 				buffer_write(q->packet, edns->cookie, OPT_HDR);
+diff --git a/query.h b/query.h
+index 7a09dc9..86784a1 100644
+--- a/query.h
++++ b/query.h
+@@ -100,6 +100,14 @@ struct query {
+ 
+ 	/* The zone used to answer the query.  */
+ 	zone_type *zone;
++#ifdef USE_ABHED
++	/* ABHED: SigTag option and MTL composition state for this query */
++	int abhed_sigtag, abhed_ntags, abhed_full_sent;
++	uint8_t abhed_flags;
++	uint8_t abhed_tags[8 * 40];
++	uint8_t abhed_full_sid[32];
++	uint32_t abhed_n[5]; /* full, condensed, compact, dedup, trimmed */
++#endif
+ 
+ 	/* The delegation domain, if any.  */
+ 	domain_type *delegation_domain;
+diff --git a/rdata.c b/rdata.c
+index ebd82e8..d7f0755 100644
+--- a/rdata.c
++++ b/rdata.c
+@@ -23,6 +23,7 @@
+ #endif
+ 
+ #include "rdata.h"
++#include "abhed_mtl.h"
+ #include "zonec.h"
+ #include "query.h"
+ #include "dname.h"
+@@ -2920,6 +2921,28 @@ read_rrsig_rdata(struct domain_table *domains, uint16_t rdlength,
+ 		return MALFORMED;
+ 	memrdlen = 18 + signer.dname.name_size;
+ 	b64len = rdlength - (buffer_position(packet) - mark);
++#ifdef USE_ABHED
++	/* ML-DSA-44-MTL: store the condensed signature, intern the signed ladder once */
++	if(b64len > 0) {
++		uint8_t* cbuf = (uint8_t*)malloc(b64len);
++		size_t clen = 0;
++		uint8_t alg = buffer_read_u8_at(packet, mark + 2);
++		if(cbuf && abhed_nsd_load_rrsig(alg, buffer_current(packet), b64len, cbuf, &clen)) {
++			if (!(*rr = region_alloc(domains->region, sizeof(**rr) + memrdlen + clen))) {
++				free(cbuf);
++				return TRUNCATED;
++			}
++			buffer_read_at(packet, mark, (*rr)->rdata, 18);
++			memcpy((*rr)->rdata + 18, dname_name((void*)&signer), signer.dname.name_size);
++			memcpy((*rr)->rdata + memrdlen, cbuf, clen);
++			buffer_skip(packet, b64len);
++			(*rr)->rdlength = memrdlen + clen;
++			free(cbuf);
++			return rdlength;
++		}
++		free(cbuf);
++	}
++#endif
+ 	if (!(*rr = region_alloc(domains->region, sizeof(**rr) + memrdlen + b64len)))
+ 		return TRUNCATED;
+ 	buffer_read_at(packet, mark, (*rr)->rdata, 18);
+diff --git a/remote.c b/remote.c
+index 3b87225..cb97754 100644
+--- a/remote.c
++++ b/remote.c
+@@ -3141,6 +3141,32 @@ print_stat_block(RES* ssl, char* n, char* d, struct nsdst* st)
+ 	if(!ssl_printf(ssl, "%s%snum.truncated=%lu\n", n, d,
+ 		(unsigned long)st->truncated))
+ 		return;
++#ifdef USE_ABHED
++	if(!ssl_printf(ssl, "%s%sabhed.mtl.full=%lu\n", n, d,
++		(unsigned long)st->abhed_full))
++		return;
++	if(!ssl_printf(ssl, "%s%sabhed.mtl.condensed=%lu\n", n, d,
++		(unsigned long)st->abhed_cond))
++		return;
++	if(!ssl_printf(ssl, "%s%sabhed.mtl.compact=%lu\n", n, d,
++		(unsigned long)st->abhed_compact))
++		return;
++	if(!ssl_printf(ssl, "%s%sabhed.mtl.dedup=%lu\n", n, d,
++		(unsigned long)st->abhed_dedup))
++		return;
++	if(!ssl_printf(ssl, "%s%sabhed.mtl.trimmed=%lu\n", n, d,
++		(unsigned long)st->abhed_trim))
++		return;
++	if(!ssl_printf(ssl, "%s%sabhed.tcp.queries=%lu\n", n, d,
++		(unsigned long)st->qtcp))
++		return;
++	if(!ssl_printf(ssl, "%s%sabhed.bytes.udp=%lu\n", n, d,
++		(unsigned long)st->bytes_udp))
++		return;
++	if(!ssl_printf(ssl, "%s%sabhed.bytes.tcp=%lu\n", n, d,
++		(unsigned long)st->bytes_tcp))
++		return;
++#endif
+ 
+ 	/* dropped */
+ 	if(!ssl_printf(ssl, "%s%snum.dropped=%lu\n", n, d,
+diff --git a/server.c b/server.c
+index 2098242..762b164 100644
+--- a/server.c
++++ b/server.c
+@@ -93,6 +93,7 @@
+ #ifdef USE_METRICS
+ #include "metrics.h"
+ #endif /* USE_METRICS */
++#include "abhed_mtl.h"
+ 
+ #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
+ 
+@@ -4296,6 +4297,9 @@ handle_udp(int fd, short event, void* arg)
+ 			buffer_flip(q->packet);
+ 			iovecs[i].iov_len = buffer_remaining(q->packet);
+ #ifdef BIND8_STATS
++#ifdef USE_ABHED
++			abhed_nsd_account(data->nsd->st, q, iovecs[i].iov_len, 0);
++#endif
+ 			/* Account the rcode & TC... */
+ 			STATUP2(data->nsd, rcode, RCODE(q->packet));
+ 			ZTATUP2(data->nsd, q->zone, rcode, RCODE(q->packet));
+@@ -4759,6 +4763,9 @@ handle_tcp_reading(int fd, short event, void* arg)
+ 	buffer_flip(data->query->packet);
+ 	data->query->tcplen = buffer_remaining(data->query->packet);
+ #ifdef BIND8_STATS
++#ifdef USE_ABHED
++	abhed_nsd_account(data->nsd->st, data->query, data->query->tcplen + 2, 1);
++#endif
+ 	/* Account the rcode & TC... */
+ 	STATUP2(data->nsd, rcode, RCODE(data->query->packet));
+ 	ZTATUP2(data->nsd, data->query->zone, rcode, RCODE(data->query->packet));
